@@ -25,6 +25,16 @@ function createInitialRoom(playerName) {
   };
 }
 
+function generateBoard() {
+  const arr = [...Array(16).keys()]; // [0,1,2,...,15]
+
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+
+  return arr;
+}
 app.get("/health", (req, res) => {
   res.json({ ok: true, service: "lobby-service" });
 });
@@ -74,13 +84,17 @@ app.post("/join-room", (req, res) => {
 });
 
 app.post("/ready", (req, res) => {
+  console.log("POST /ready hit");
+  console.log("req.body =", req.body);
+
   const { roomId, playerName } = req.body;
+
+  const room = rooms.get(roomId);
+  console.log("room before =", room);
 
   if (!roomId || !playerName || !playerName.trim()) {
     return res.status(400).json({ error: "roomId and playerName are required" });
   }
-
-  const room = rooms.get(roomId);
 
   if (!room) {
     return res.status(404).json({ error: "Room not found" });
@@ -94,9 +108,17 @@ app.post("/ready", (req, res) => {
     return res.status(400).json({ error: "Player is not in this room" });
   }
 
+  console.log("room after ready set =", room);
+
   if (room.player1 && room.player2 && room.player1Ready && room.player2Ready) {
     room.gameStarted = true;
+
+    if (!room.board) {
+      room.board = generateBoard();
+    }
   }
+
+  console.log("room final =", room);
 
   rooms.set(roomId, room);
   res.json(room);
